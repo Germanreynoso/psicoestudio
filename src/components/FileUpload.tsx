@@ -8,7 +8,7 @@ interface FileUploadProps {
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess }) => {
-    const [isUploading, setIsUploading] = useState(false);
+
     const [files, setFiles] = useState<{ name: string; status: 'uploading' | 'success' | 'error' }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -19,7 +19,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess }) => {
         for (const file of Array.from(selectedFiles)) {
             // Limpiar estados previos si se reintenta
             setFiles(prev => [...prev.filter(f => f.name !== file.name), { name: file.name, status: 'uploading' }]);
-            setIsUploading(true);
+
 
             try {
                 console.log('Subiendo a Supabase Storage:', file.name);
@@ -41,7 +41,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess }) => {
                 setFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'error' } : f));
             }
         }
-        setIsUploading(false);
+
     };
 
     return (

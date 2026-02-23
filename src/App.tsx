@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Brain, GraduationCap, Send, History, Loader2, PlusCircle, FileCheck, BookOpen, X, FileText, HelpCircle, Menu } from 'lucide-react';
+import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
-import { generateAIResponse, getRelevantContext, evaluateResponse, saveManualContext } from './lib/ai';
+import { generateAIResponse, getRelevantContext, evaluateResponse } from './lib/ai';
 import { saveChatMessage, createNewSession } from './services/api';
 import { supabase } from './lib/supabase';
 import './App.css';
