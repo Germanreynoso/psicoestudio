@@ -405,8 +405,8 @@ function App() {
             <Network size={20} /><span>El Ateneo (Debate)</span>
           </div>
           <div className="nav-divider"></div>
-          <div className="nav-item" onClick={() => { fetchDocs(); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><BookOpen size={20} /><span>Ver Material</span></div>
-          <div className="nav-item" onClick={() => { setShowDocs(true); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><Upload size={20} /><span>Subir Bibliografía</span></div>
+          <div className="nav-item" onClick={() => { fetchDocs(); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><BookOpen size={20} /><span>Ver Material Guardado</span></div>
+          <div className="nav-item upload-highlight" onClick={() => { setShowDocs(true); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><Upload size={20} /><span>Subir Bibliografía</span></div>
           <div className="nav-item"><History size={20} /><span>Historial</span></div>
         </nav>
 
@@ -644,7 +644,12 @@ function App() {
 
                 <div className="doc-selector-grid">
                   {documents.length === 0 ? (
-                    <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                    <div className="empty-upload-state">
+                      <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                      <button className="generate-btn glass secondary" onClick={() => setShowDocs(true)}>
+                        <Upload size={18} /> Subir primer texto
+                      </button>
+                    </div>
                   ) : (
                     documents.map((doc) => (
                       <div
@@ -684,7 +689,12 @@ function App() {
 
                 <div className="doc-selector-grid">
                   {documents.length === 0 ? (
-                    <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                    <div className="empty-upload-state">
+                      <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                      <button className="generate-btn glass secondary" onClick={() => setShowDocs(true)}>
+                        <Upload size={18} /> Subir primer texto
+                      </button>
+                    </div>
                   ) : (
                     documents.map((doc) => (
                       <div
@@ -724,7 +734,12 @@ function App() {
 
                 <div className="doc-selector-grid">
                   {documents.length === 0 ? (
-                    <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                    <div className="empty-upload-state">
+                      <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                      <button className="generate-btn glass secondary" onClick={() => setShowDocs(true)}>
+                        <Upload size={18} /> Subir primer texto
+                      </button>
+                    </div>
                   ) : (
                     documents.map((doc) => (
                       <div
