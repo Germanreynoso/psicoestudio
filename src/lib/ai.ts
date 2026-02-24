@@ -45,7 +45,7 @@ export const getContextByIds = async (ids: string[]): Promise<string> => {
     return "No se encontró el material seleccionado.";
 };
 
-export const generateAIResponse = async (context: string, history: any[], mode: 'exam' | 'doubt') => {
+export const generateAIResponse = async (context: string, history: any[], mode: 'exam' | 'doubt' | 'cases') => {
     const prompts = {
         exam: `
       Eres un Catedrático de Facultad de Medicina y Psicología de alto nivel.
@@ -68,6 +68,18 @@ export const generateAIResponse = async (context: string, history: any[], mode: 
       1. Explica los conceptos complejos de forma clara, usando analogías médicas o clínicas si es necesario.
       2. Usa ejemplos de la práctica profesional.
       3. Mantén el rigor científico.
+    `,
+        cases: `
+      Eres un Supervisor Clínico y el Paciente (Simulación Mixta).
+      MODO: RESOLUCIÓN DE CASO CLÍNICO INTERACTIVO.
+      BIBLIOGRAFÍA: ${context}
+      HISTORIAL: ${JSON.stringify(history)}
+
+      INSTRUCCIONES:
+      1. Si el alumno hace una pregunta al paciente, responde EN CARÁCTER (como el paciente).
+      2. Si el alumno pide un estudio o da un diagnóstico, responde como SUPERVISOR evaluando la pertinencia.
+      3. El objetivo es que el alumno llegue al diagnóstico o tratamiento correcto basándose exclusivamente en la bibliografía.
+      4. Mantén el caso dinámico. No des la respuesta, deja que el alumno investigue (anamnesis).
     `
     };
 
@@ -77,6 +89,25 @@ export const generateAIResponse = async (context: string, history: any[], mode: 
     });
 
     return completion.choices[0]?.message?.content || "Error en la conexión docente.";
+};
+
+export const generateClinicalCase = async (context: string) => {
+    const prompt = `
+    Basándote en la siguiente bibliografía, genera un CASO CLÍNICO inicial breve para que un estudiante lo resuelva.
+    No des el diagnóstico. Presenta el motivo de consulta y los signos vitales/datos iniciales básicos.
+    El caso debe ser desafiante y requerir integración de los textos provistos.
+    
+    BIBLIOGRAFÍA: ${context.substring(0, 5000)}
+    
+    Responde en formato texto natural, presentándote como el supervisor que introduce el caso.
+  `;
+
+    const completion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'llama-3.3-70b-versatile',
+    });
+
+    return completion.choices[0]?.message?.content || "No se pudo generar el caso clínico.";
 };
 
 export const evaluateResponse = async (userResponse: string, context: string) => {

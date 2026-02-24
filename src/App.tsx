@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu } from 'lucide-react';
+import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu, Stethoscope } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
-import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds } from './lib/ai';
+import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds, generateClinicalCase } from './lib/ai';
 import { saveChatMessage, createNewSession } from './services/api';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -13,7 +13,8 @@ function App() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [lastEvaluation, setLastEvaluation] = useState<any>(null);
   const [showDocs, setShowDocs] = useState(false);
-  const [activeModule, setActiveModule] = useState<'exam' | 'doubt' | 'flashcards'>('exam');
+  const [activeModule, setActiveModule] = useState<'exam' | 'doubt' | 'flashcards' | 'cases'>('exam');
+  const [isCaseActive, setIsCaseActive] = useState(false);
   const [flashcards, setFlashcards] = useState<any[]>([]);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -47,10 +48,34 @@ function App() {
   };
 
   useEffect(() => {
-    if (activeModule === 'flashcards') {
+    if (activeModule === 'flashcards' || activeModule === 'cases') {
       fetchAllDocsForSelection();
     }
   }, [activeModule]);
+
+  const handleStartCase = async () => {
+    if (selectedDocIds.length === 0) {
+      alert("Por favor, selecciona al menos un texto bibliográfico para el caso.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const context = await getContextByIds(selectedDocIds);
+      const caseIntro = await generateClinicalCase(context);
+
+      const session = await createNewSession();
+      setSessionId(session.id);
+
+      const introMessage = { role: 'assistant', content: caseIntro, module: 'cases' };
+      setMessages([introMessage]);
+      await saveChatMessage(session.id, 'assistant', caseIntro);
+      setIsCaseActive(true);
+    } catch (error) {
+      console.error('Error starting case:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGenerateFlashcards = async () => {
     if (selectedDocIds.length === 0) {
@@ -121,6 +146,10 @@ function App() {
           aiContent = `**FEEDBACK DOCENTE:**\n${evaluation.feedback}\n\n---\n**CALIFICACIÓN:** ${evaluation.score}/10 | **NIVEL:** ${evaluation.level}\n---\n\n**SIGUIENTE PREGUNTA:**\n${nextQuestion}`;
           await saveChatMessage(sessionId, 'assistant', aiContent, evaluation);
         }
+      } else if (activeModule === 'cases') {
+        const caseContext = await getContextByIds(selectedDocIds);
+        aiContent = await generateAIResponse(caseContext, newMessages, 'cases');
+        await saveChatMessage(sessionId, 'assistant', aiContent);
       } else {
         // MODO DUDA
         aiContent = await generateAIResponse(context, newMessages, 'doubt');
@@ -156,6 +185,9 @@ function App() {
           </div>
           <div className={`nav-item ${activeModule === 'flashcards' ? 'active' : ''}`} onClick={() => { setActiveModule('flashcards'); setIsSidebarOpen(false); }}>
             <FileCheck size={20} /><span>Smart Flashcards</span>
+          </div>
+          <div className={`nav-item ${activeModule === 'cases' ? 'active' : ''}`} onClick={() => { setActiveModule('cases'); setIsSidebarOpen(false); }}>
+            <Stethoscope size={20} /><span>Casos Clínicos</span>
           </div>
           <div className="nav-divider"></div>
           <div className="nav-item" onClick={() => { fetchDocs(); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><BookOpen size={20} /><span>Ver Material</span></div>
@@ -203,11 +235,52 @@ function App() {
             <button className={`tab ${activeModule === 'exam' ? 'active' : ''}`} onClick={() => setActiveModule('exam')}>Examen</button>
             <button className={`tab ${activeModule === 'doubt' ? 'active' : ''}`} onClick={() => setActiveModule('doubt')}>Dudas</button>
             <button className={`tab ${activeModule === 'flashcards' ? 'active' : ''}`} onClick={() => setActiveModule('flashcards')}>Flashcards</button>
+            <button className={`tab ${activeModule === 'cases' ? 'active' : ''}`} onClick={() => setActiveModule('cases')}>Casos</button>
           </div>
         </header>
 
         <section className="chat-window">
-          {activeModule === 'flashcards' ? (
+          {activeModule === 'cases' && !isCaseActive ? (
+            <div className="flashcards-section">
+              <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>
+                <Stethoscope size={48} className="empty-icon" />
+                <h3>Preparar Simulación Clínica</h3>
+                <p>Selecciona los textos bibliográficos en los que se debe basar el caso del paciente.</p>
+
+                <div className="doc-selector-grid">
+                  {documents.length === 0 ? (
+                    <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                  ) : (
+                    documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className={`doc-selection-item glass ${selectedDocIds.includes(doc.id) ? 'selected' : ''}`}
+                        onClick={() => toggleDocSelection(doc.id)}
+                      >
+                        <div className="selector-checkbox">
+                          <div className="checkbox-inner"></div>
+                        </div>
+                        <div className="selection-info">
+                          <span className="selection-name">{doc.metadata?.source || 'Documento sin nombre'}</span>
+                          <span className="selection-date">{new Date(doc.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button
+                  className="generate-btn glass"
+                  onClick={handleStartCase}
+                  disabled={isLoading || selectedDocIds.length === 0}
+                  style={{ marginTop: '1.5rem', width: '100%' }}
+                >
+                  {isLoading ? <Loader2 className="animate-spin" /> : <Stethoscope size={20} />}
+                  {isLoading ? 'Construyendo escenario...' : `Iniciar Caso de ${selectedDocIds.length} textos`}
+                </button>
+              </div>
+            </div>
+          ) : activeModule === 'flashcards' ? (
             <div className="flashcards-section">
               {flashcards.length === 0 ? (
                 <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>
@@ -292,6 +365,11 @@ function App() {
           ) : (
             <>
               <div className="messages-container">
+                {activeModule === 'cases' && isCaseActive && (
+                  <button className="back-to-selection" onClick={() => setIsCaseActive(false)} style={{ marginBottom: '1rem' }}>
+                    <History size={16} /> Nuevo Caso / Cambiar selección
+                  </button>
+                )}
                 {messages.filter(m => !m.module || m.module === activeModule).length === 0 && (
                   <div className="message assistant glass">
                     {activeModule === 'exam' ? (
@@ -321,7 +399,11 @@ function App() {
                       handleSend();
                     }
                   }}
-                  placeholder={activeModule === 'exam' ? "Escribe tu respuesta clínica/analítica..." : "Haz una pregunta sobre el material..."}
+                  placeholder={
+                    activeModule === 'exam' ? "Escribe tu respuesta clínica/analítica..." :
+                      activeModule === 'cases' ? "Pregunta al paciente o propone una acción..." :
+                        "Haz una pregunta sobre el material..."
+                  }
                   className="chat-input"
                 />
                 <button className="send-btn" onClick={handleSend} disabled={isLoading}><Send size={18} /></button>
