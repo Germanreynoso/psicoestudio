@@ -14,10 +14,11 @@ function App() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [lastEvaluation, setLastEvaluation] = useState<any>(null);
   const [showDocs, setShowDocs] = useState(false);
-  const [activeModule, setActiveModule] = useState<'exam' | 'doubt' | 'flashcards' | 'cases' | 'map' | 'tribunal'>('exam');
+  const [activeModule, setActiveModule] = useState<'exam' | 'doubt' | 'flashcards' | 'cases' | 'map' | 'tribunal' | 'ateneo'>('exam');
   const [isCaseActive, setIsCaseActive] = useState(false);
   const [isExamActive, setIsExamActive] = useState(false);
   const [isTribunalActive, setIsTribunalActive] = useState(false);
+  const [isAteneoActive, setIsAteneoActive] = useState(false);
   const [graphData, setGraphData] = useState<{ nodes: any[], edges: any[] } | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<any | null>(null);
   const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
@@ -110,6 +111,33 @@ function App() {
       }
     } catch (error) {
       console.error('Error starting tribunal:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStartAteneo = async () => {
+    if (selectedDocIds.length === 0) {
+      alert("Por favor, selecciona al menos un texto bibliográfico para el ateneo.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const context = await getContextByIds(selectedDocIds);
+      const session = await createNewSession();
+      setSessionId(session.id);
+
+      const firstGreeting = await generateAIResponse(context, [], 'ateneo');
+      const introMessage = { role: 'assistant', content: firstGreeting, module: 'ateneo' };
+      setMessages([introMessage]);
+      await saveChatMessage(session.id, 'assistant', firstGreeting);
+      setIsAteneoActive(true);
+
+      if (isVoiceEnabled) {
+        speakTribunalMessage(firstGreeting);
+      }
+    } catch (error) {
+      console.error('Error starting ateneo:', error);
     } finally {
       setIsLoading(false);
     }
@@ -291,6 +319,10 @@ function App() {
         const tribunalContext = await getContextByIds(selectedDocIds);
         aiContent = await generateAIResponse(tribunalContext, newMessages, 'tribunal');
         await saveChatMessage(sessionId, 'assistant', aiContent);
+      } else if (activeModule === 'ateneo') {
+        const ateneoContext = await getContextByIds(selectedDocIds);
+        aiContent = await generateAIResponse(ateneoContext, newMessages, 'ateneo');
+        await saveChatMessage(sessionId, 'assistant', aiContent);
       } else if (activeModule === 'cases') {
         const caseContext = await getContextByIds(selectedDocIds);
         aiContent = await generateAIResponse(caseContext, newMessages, 'cases');
@@ -302,7 +334,7 @@ function App() {
 
       setMessages(prev => [...prev, { role: 'assistant', content: aiContent, module: activeModule }]);
 
-      if (activeModule === 'tribunal' && isVoiceEnabled) {
+      if ((activeModule === 'tribunal' || activeModule === 'ateneo') && isVoiceEnabled) {
         speakTribunalMessage(aiContent);
       }
 
@@ -369,6 +401,9 @@ function App() {
           <div className={`nav-item ${activeModule === 'tribunal' ? 'active' : ''}`} onClick={() => { setActiveModule('tribunal'); setIsSidebarOpen(false); }}>
             <Scale size={20} /><span>Modo Tribunal</span>
           </div>
+          <div className={`nav-item ${activeModule === 'ateneo' ? 'active' : ''}`} onClick={() => { setActiveModule('ateneo'); setIsSidebarOpen(false); }}>
+            <Network size={20} /><span>El Ateneo (Debate)</span>
+          </div>
           <div className="nav-divider"></div>
           <div className="nav-item" onClick={() => { fetchDocs(); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><BookOpen size={20} /><span>Ver Material</span></div>
           <div className="nav-item" onClick={() => { setShowDocs(true); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><Upload size={20} /><span>Subir Bibliografía</span></div>
@@ -413,32 +448,32 @@ function App() {
               <Menu size={24} />
             </button>
             <div className="exam-info">
-              <h1>{activeModule === 'exam' ? 'Examen Final' : activeModule === 'doubt' ? 'Consultas' : activeModule === 'cases' ? 'Casos Clínicos' : activeModule === 'tribunal' ? 'Modo Tribunal' : 'Flashcards'}</h1>
+              <h1>{activeModule === 'exam' ? 'Examen Final' : activeModule === 'doubt' ? 'Consultas' : activeModule === 'cases' ? 'Casos Clínicos' : activeModule === 'tribunal' ? 'Modo Tribunal' : activeModule === 'ateneo' ? 'El Ateneo' : 'Flashcards'}</h1>
               <p className="subtitle">
-                {(activeModule === 'exam' && isExamActive) || (activeModule === 'cases' && isCaseActive) || (activeModule === 'tribunal' && isTribunalActive) ? (
+                {(activeModule === 'exam' && isExamActive) || (activeModule === 'cases' && isCaseActive) || (activeModule === 'tribunal' && isTribunalActive) || (activeModule === 'ateneo' && isAteneoActive) ? (
                   <span className="progress-pill">Progreso: {currentQuestionCount} de {totalQuestionsLimit}</span>
                 ) : (
-                  activeModule === 'exam' ? 'Evaluación de Especialidad' : activeModule === 'tribunal' ? 'Mesa de Examen Multi-Profesor' : activeModule === 'doubt' ? 'Resolución de dudas' : 'Aprendizaje Acelerado'
+                  activeModule === 'exam' ? 'Evaluación de Especialidad' : activeModule === 'tribunal' ? 'Mesa de Examen Multi-Profesor' : activeModule === 'ateneo' ? 'Debate entre autores' : activeModule === 'doubt' ? 'Resolución de dudas' : 'Aprendizaje Acelerado'
                 )}
               </p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {activeModule === 'tribunal' && (
+            {(activeModule === 'tribunal' || activeModule === 'ateneo') && (
               <button
                 className={`voice-toggle-btn ${isVoiceEnabled ? 'active' : ''}`}
                 onClick={() => {
                   const nextState = !isVoiceEnabled;
                   setIsVoiceEnabled(nextState);
                   if (nextState) {
-                    // Try to speak the last tribunal message immediately if there is one
-                    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && (m.module === 'tribunal' || activeModule === 'tribunal'));
+                    // Try to speak the last message immediately if there is one
+                    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && (m.module === activeModule));
                     if (lastAssistantMsg) speakTribunalMessage(lastAssistantMsg.content);
                   } else {
                     window.speechSynthesis.cancel();
                   }
                 }}
-                title={isVoiceEnabled ? "Desactivar audio de la mesa" : "Activar audio de la mesa"}
+                title={isVoiceEnabled ? "Desactivar audio" : "Activar audio"}
               >
                 {isVoiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
                 <span>{isVoiceEnabled ? 'Audio ON' : 'Audio OFF'}</span>
@@ -451,6 +486,7 @@ function App() {
               <button className={`tab ${activeModule === 'cases' ? 'active' : ''}`} onClick={() => setActiveModule('cases')}>Casos</button>
               <button className={`tab ${activeModule === 'map' ? 'active' : ''}`} onClick={() => setActiveModule('map')}>Mapa</button>
               <button className={`tab ${activeModule === 'tribunal' ? 'active' : ''}`} onClick={() => setActiveModule('tribunal')}>Tribunal</button>
+              <button className={`tab ${activeModule === 'ateneo' ? 'active' : ''}`} onClick={() => setActiveModule('ateneo')}>Ateneo</button>
             </div>
           </div>
         </header>
@@ -598,6 +634,46 @@ function App() {
                   </div>
                 </div>
               )}
+            </div>
+          ) : activeModule === 'ateneo' && !isAteneoActive ? (
+            <div className="flashcards-section">
+              <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>
+                <Network size={48} className="empty-icon" />
+                <h3>Organizar Ateneo de Autores</h3>
+                <p>Propón un debate entre los autores de tu bibliografía sobre los puntos de conflicto teóricos.</p>
+
+                <div className="doc-selector-grid">
+                  {documents.length === 0 ? (
+                    <p className="muted">No hay bibliografía cargada en la base de datos.</p>
+                  ) : (
+                    documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className={`doc-selection-item glass ${selectedDocIds.includes(doc.id) ? 'selected' : ''}`}
+                        onClick={() => toggleDocSelection(doc.id)}
+                      >
+                        <div className="selector-checkbox">
+                          <div className="checkbox-inner"></div>
+                        </div>
+                        <div className="selection-info">
+                          <span className="selection-name">{doc.metadata?.source || 'Documento sin nombre'}</span>
+                          <span className="selection-date">{new Date(doc.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button
+                  className="generate-btn glass"
+                  onClick={handleStartAteneo}
+                  disabled={isLoading || selectedDocIds.length === 0}
+                  style={{ marginTop: '1.5rem', width: '100%' }}
+                >
+                  {isLoading ? <Loader2 className="animate-spin" /> : <Network size={20} />}
+                  {isLoading ? 'Convocando a los autores...' : `Iniciar Debate con ${selectedDocIds.length} textos`}
+                </button>
+              </div>
             </div>
           ) : activeModule === 'tribunal' && !isTribunalActive ? (
             <div className="flashcards-section">
@@ -819,7 +895,12 @@ function App() {
                     <Scale size={16} /> Nueva Mesa / Cambiar selección
                   </button>
                 )}
-                {((activeModule === 'exam' && isExamActive) || (activeModule === 'cases' && isCaseActive) || (activeModule === 'tribunal' && isTribunalActive)) && currentQuestionCount < totalQuestionsLimit && (
+                {activeModule === 'ateneo' && isAteneoActive && (
+                  <button className="back-to-selection" onClick={() => setIsAteneoActive(false)} style={{ marginBottom: '1rem' }}>
+                    <Network size={16} /> Nuevo Debate / Cambiar autores
+                  </button>
+                )}
+                {((activeModule === 'exam' && isExamActive) || (activeModule === 'cases' && isCaseActive) || (activeModule === 'tribunal' && isTribunalActive) || (activeModule === 'ateneo' && isAteneoActive)) && currentQuestionCount < totalQuestionsLimit && (
                   <button
                     className="finish-session-btn glass"
                     onClick={handleFinishSession}
@@ -834,6 +915,8 @@ function App() {
                       <p>Bienvenido al módulo de <strong>Examen</strong>. Evaluaré tu integración clínica y teórica. ¿Empezamos?</p>
                     ) : activeModule === 'tribunal' ? (
                       <p>Estás frente a la <strong>Mesa de Examen</strong>. Los doctores Castillo, Varela y Rossi te esperan. ¿Deseas presentarte?</p>
+                    ) : activeModule === 'ateneo' ? (
+                      <p>Bienvenidos al <strong>Ateneo de Autores</strong>. El debate está abierto. ¿Sobre qué concepto quieres que dialoguen los autores?</p>
                     ) : (
                       <p>Hola. Estoy aquí para resolver tus <strong>dudas</strong> académicas. ¿En qué concepto quieres profundizar hoy?</p>
                     )}
@@ -869,7 +952,8 @@ function App() {
                     activeModule === 'exam' ? "Escribe tu respuesta clínica/analítica..." :
                       activeModule === 'cases' ? "Pregunta al paciente o propone una acción..." :
                         activeModule === 'tribunal' ? "Responde al tribunal médico..." :
-                          "Haz una pregunta sobre el material..."
+                          activeModule === 'ateneo' ? "Modera el debate o lanza un tema..." :
+                            "Haz una pregunta sobre el material..."
                   }
                   className="chat-input"
                 />

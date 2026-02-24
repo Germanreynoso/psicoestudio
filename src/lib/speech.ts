@@ -54,13 +54,19 @@ export const speakTribunalMessage = (text: string) => {
 
         if (profName.includes('castillo')) {
             utterance.pitch = 0.6;
-            utterance.rate = 1.05; // Balanced
+            utterance.rate = 1.05;
         } else if (profName.includes('varela')) {
             utterance.pitch = 0.9;
-            utterance.rate = 1.15; // Balanced
+            utterance.rate = 1.15;
         } else if (profName.includes('rossi')) {
             utterance.pitch = 1.2;
-            utterance.rate = 1.2; // Much more intelligible
+            utterance.rate = 1.2;
+        } else {
+            // Dynamic pitch for authors (Freud, Lacan, etc.)
+            // Shift hash to keep pitch in range [0.7, 1.4]
+            const hash = profName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            utterance.pitch = 0.7 + (hash % 8) * 0.1;
+            utterance.rate = 1.1;
         }
 
         window.speechSynthesis.speak(utterance);

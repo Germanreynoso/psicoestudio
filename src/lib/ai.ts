@@ -45,7 +45,7 @@ export const getContextByIds = async (ids: string[]): Promise<string> => {
   return "No se encontró el material seleccionado.";
 };
 
-export const generateAIResponse = async (context: string, history: any[], mode: 'exam' | 'doubt' | 'cases' | 'tribunal') => {
+export const generateAIResponse = async (context: string, history: any[], mode: 'exam' | 'doubt' | 'cases' | 'tribunal' | 'ateneo') => {
   const prompts = {
     exam: `
       Eres un Catedrático de Facultad de Medicina y Psicología de alto nivel.
@@ -96,6 +96,20 @@ export const generateAIResponse = async (context: string, history: any[], mode: 
       - **Respuesta a preguntas**: Si el alumno pregunta algo "obvio", Castillo debe humillarlo antes de que Rossi explique con paciencia.
       - Usa un formato claro: **[Dr. Castillo]**, **[Dr. Varela]**, **[Lic. Rossi]**.
       - Mantén el alto nivel académico bajo un clima de tensión real de examen final oral.
+    `,
+    ateneo: `
+      Eres el "Ateneo de Autores". Tu tarea es simular un debate intelectual de alto nivel entre los autores representados en la bibliografía cargada.
+      
+      BIBLIOGRAFÍA: ${context}
+      HISTORIAL: ${JSON.stringify(history)}
+
+      INSTRUCCIONES:
+      1. Identifica los autores o corrientes principales en los documentos (ej: Freud, Lacan, Klein, Winnicott).
+      2. Si el usuario plantea un tema, haz que los autores debatan entre sí sobre ese concepto.
+      3. Usa el formato **[Nombre del Autor]** para cada intervención.
+      4. Los autores deben mantener sus posturas teóricas, terminología específica y estilos (ej: Freud más explicativo, Lacan más críptico y subversivo).
+      5. Como moderador, el alumno puede preguntar directamente a uno o lanzar un tema general.
+      6. Incentiva el debate: Un autor puede citar al otro para contradecirlo o expandir su idea basándose en los textos.
     `
   };
 
