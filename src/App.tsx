@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu, Briefcase, Mic, MicOff, Network, Maximize2, Minimize2, Scale, Volume2, VolumeX, Upload } from 'lucide-react';
-import { speakTribunalMessage } from './lib/speech';
+import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu, Briefcase, Mic, MicOff, Network, Maximize2, Minimize2, Scale, Volume2, VolumeX, Upload, Headphones, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { speakTribunalMessage, pauseSpeech, resumeSpeech, nextSegment, prevSegment, setSpeechStateCallback } from './lib/speech';
 import { FileUpload } from './components/FileUpload';
-import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds, generatePracticalCase, generateKnowledgeGraph } from './lib/ai';
+import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds, generatePracticalCase, generateKnowledgeGraph, generatePodcastScript } from './lib/ai';
 import { saveChatMessage, createNewSession } from './services/api';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -14,7 +14,7 @@ function App() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [lastEvaluation, setLastEvaluation] = useState<any>(null);
   const [showDocs, setShowDocs] = useState(false);
-  const [activeModule, setActiveModule] = useState<'exam' | 'doubt' | 'flashcards' | 'cases' | 'map' | 'tribunal' | 'ateneo'>('exam');
+  const [activeModule, setActiveModule] = useState<'exam' | 'doubt' | 'flashcards' | 'cases' | 'map' | 'tribunal' | 'ateneo' | 'podcast'>('exam');
   const [isCaseActive, setIsCaseActive] = useState(false);
   const [isExamActive, setIsExamActive] = useState(false);
   const [isTribunalActive, setIsTribunalActive] = useState(false);
@@ -32,6 +32,14 @@ function App() {
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [currentQuestionCount, setCurrentQuestionCount] = useState(0);
   const totalQuestionsLimit = 5;
+  const [podcastScript, setPodcastScript] = useState<string | null>(null);
+  const [isPodcastPlaying, setIsPodcastPlaying] = useState(false);
+
+  useEffect(() => {
+    setSpeechStateCallback((playing) => {
+      setIsPodcastPlaying(playing);
+    });
+  }, []);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -221,6 +229,26 @@ function App() {
     }
   };
 
+  const handleGeneratePodcast = async () => {
+    if (selectedDocIds.length === 0) {
+      alert("Por favor, selecciona al menos un texto bibliográfico.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const context = await getContextByIds(selectedDocIds);
+      const script = await generatePodcastScript(context);
+      setPodcastScript(script);
+      if (isVoiceEnabled) {
+        speakTribunalMessage(script);
+      }
+    } catch (error) {
+      console.error('Error generating podcast:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const toggleDocSelection = (id: string) => {
     setSelectedDocIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
@@ -404,6 +432,9 @@ function App() {
           <div className={`nav-item ${activeModule === 'ateneo' ? 'active' : ''}`} onClick={() => { setActiveModule('ateneo'); setIsSidebarOpen(false); }}>
             <Network size={20} /><span>El Ateneo (Debate)</span>
           </div>
+          <div className={`nav-item ${activeModule === 'podcast' ? 'active' : ''}`} onClick={() => { setActiveModule('podcast'); setIsSidebarOpen(false); }}>
+            <Headphones size={20} /><span>Generador Podcast</span>
+          </div>
           <div className="nav-divider"></div>
           <div className="nav-item" onClick={() => { fetchDocs(); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><BookOpen size={20} /><span>Ver Material Guardado</span></div>
           <div className="nav-item upload-highlight" onClick={() => { setShowDocs(true); setIsSidebarOpen(false); }} style={{ cursor: 'pointer' }}><Upload size={20} /><span>Subir Bibliografía</span></div>
@@ -448,7 +479,7 @@ function App() {
               <Menu size={24} />
             </button>
             <div className="exam-info">
-              <h1>{activeModule === 'exam' ? 'Examen Final' : activeModule === 'doubt' ? 'Consultas' : activeModule === 'cases' ? 'Casos Prácticos' : activeModule === 'tribunal' ? 'Modo Tribunal' : activeModule === 'ateneo' ? 'El Ateneo' : 'Flashcards'}</h1>
+              <h1>{activeModule === 'exam' ? 'Examen Final' : activeModule === 'doubt' ? 'Consultas' : activeModule === 'cases' ? 'Casos Prácticos' : activeModule === 'tribunal' ? 'Modo Tribunal' : activeModule === 'ateneo' ? 'El Ateneo' : activeModule === 'podcast' ? 'Podcast Educativo' : 'Flashcards'}</h1>
               <p className="subtitle">
                 {(activeModule === 'exam' && isExamActive) || (activeModule === 'cases' && isCaseActive) || (activeModule === 'tribunal' && isTribunalActive) || (activeModule === 'ateneo' && isAteneoActive) ? (
                   <span className="progress-pill">Progreso: {currentQuestionCount} de {totalQuestionsLimit}</span>
@@ -459,7 +490,7 @@ function App() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {(activeModule === 'tribunal' || activeModule === 'ateneo') && (
+            {(activeModule === 'tribunal' || activeModule === 'ateneo' || activeModule === 'podcast') && (
               <button
                 className={`voice-toggle-btn ${isVoiceEnabled ? 'active' : ''}`}
                 onClick={() => {
@@ -468,7 +499,11 @@ function App() {
                   if (nextState) {
                     // Try to speak the last message immediately if there is one
                     const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && (m.module === activeModule));
-                    if (lastAssistantMsg) speakTribunalMessage(lastAssistantMsg.content);
+                    if (lastAssistantMsg) {
+                      speakTribunalMessage(lastAssistantMsg.content);
+                    } else if (activeModule === 'podcast' && podcastScript) {
+                      speakTribunalMessage(podcastScript);
+                    }
                   } else {
                     window.speechSynthesis.cancel();
                   }
@@ -487,12 +522,108 @@ function App() {
               <button className={`tab ${activeModule === 'map' ? 'active' : ''}`} onClick={() => setActiveModule('map')}>Mapa</button>
               <button className={`tab ${activeModule === 'tribunal' ? 'active' : ''}`} onClick={() => setActiveModule('tribunal')}>Tribunal</button>
               <button className={`tab ${activeModule === 'ateneo' ? 'active' : ''}`} onClick={() => setActiveModule('ateneo')}>Ateneo</button>
+              <button className={`tab ${activeModule === 'podcast' ? 'active' : ''}`} onClick={() => setActiveModule('podcast')}>Podcast</button>
             </div>
           </div>
         </header>
 
         <section className="chat-window">
-          {activeModule === 'map' ? (
+          {activeModule === 'podcast' ? (
+            <div className="flashcards-section">
+              {!podcastScript ? (
+                <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>
+                  <Headphones size={48} className="empty-icon" />
+                  <h3>Generador de Podcast Educativo</h3>
+                  <p>Convierte tus textos en una charla dinámica entre Santi y la Dra. Valeria.</p>
+
+                  <div className="doc-selector-grid">
+                    {documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className={`doc-selection-item glass ${selectedDocIds.includes(doc.id) ? 'selected' : ''}`}
+                        onClick={() => toggleDocSelection(doc.id)}
+                      >
+                        <div className="selector-checkbox">
+                          <div className="checkbox-inner"></div>
+                        </div>
+                        <div className="selection-info">
+                          <span className="selection-name">{doc.metadata?.source || 'Documento sin nombre'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    className="generate-btn glass"
+                    onClick={handleGeneratePodcast}
+                    disabled={isLoading || selectedDocIds.length === 0}
+                    style={{ marginTop: '1.5rem', width: '100%' }}
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" /> : <Headphones size={20} />}
+                    {isLoading ? 'Grabando episodio...' : `Generar Podcast de ${selectedDocIds.length} textos`}
+                  </button>
+                </div>
+              ) : (
+                <div className="podcast-container">
+                  <div className="podcast-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div className="podcast-badge">EPISODIO EN VIVO</div>
+                      <span className="podcast-title">Deep Dive: {selectedDocIds.length > 0 ? documents.find(d => d.id === selectedDocIds[0])?.metadata?.source : 'Estudio'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="back-btn-mini" onClick={() => { setPodcastScript(null); window.speechSynthesis.cancel(); }}><History size={14} /> Nuevo Episodio</button>
+                    </div>
+                  </div>
+                  <div className="podcast-transcript glass">
+                    {podcastScript.split('\n').map((line, i) => {
+                      const isAlex = line.startsWith('[Alex]');
+                      const isSam = line.startsWith('[Sam]');
+                      if (!isAlex && !isSam && !line.includes(':')) return null;
+
+                      const content = line.split(/\]:\s*/)[1] || line.split(/\]\s*/)[1] || line;
+                      const name = isAlex ? 'Alex' : 'Sam';
+
+                      return (
+                        <div key={i} className={`podcast-line ${isAlex ? 'alex' : 'sam'}`}>
+                          <div className="speaker-avatar">{name[0]}</div>
+                          <div className="speaker-content">
+                            <span className="speaker-name">{name}</span>
+                            <p className="speaker-text">{content}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="podcast-controls-floating glass">
+                    <button className="podcast-audio-btn" onClick={() => prevSegment()}>
+                      <SkipBack size={20} fill="currentColor" />
+                    </button>
+                    <button
+                      className="podcast-audio-btn primary"
+                      onClick={() => {
+                        if (isPodcastPlaying) {
+                          pauseSpeech();
+                          setIsPodcastPlaying(false);
+                        } else {
+                          if (window.speechSynthesis.paused) {
+                            resumeSpeech();
+                          } else {
+                            speakTribunalMessage(podcastScript);
+                          }
+                          setIsPodcastPlaying(true);
+                        }
+                      }}
+                    >
+                      {isPodcastPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" style={{ marginLeft: '4px' }} />}
+                    </button>
+                    <button className="podcast-audio-btn" onClick={() => nextSegment()}>
+                      <SkipForward size={20} fill="currentColor" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : activeModule === 'map' ? (
             <div className="flashcards-section">
               {!graphData ? (
                 <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>

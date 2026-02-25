@@ -256,3 +256,36 @@ export const generateFlashcards = async (context: string) => {
 
   return JSON.parse(completion.choices[0]?.message?.content || '{ "flashcards": [] }');
 };
+
+export const generatePodcastScript = async (context: string) => {
+  const prompt = `
+    Eres un productor de podcasts educativos de alta calidad tipo "Deep Dive" o "TED Radio Hour".
+    Tu tarea es transformar el material bibliográfico en un guion de podcast dinámico, entretenido y profundo.
+    
+    PERSONAJES (Nombres Neutros):
+    1. **Alex**: Curioso/a, hace preguntas que el público se haría, usa un lenguaje accesible pero inteligente. Es quien guía la charla.
+    2. **Sam**: El/la Experto/a, apasionado/a por el tema, tiene la capacidad de explicar conceptos complejos de forma sencilla sin perder el rigor.
+    
+    ESTRUCTURA DEL GUION:
+    - Comienza con una breve introducción entusiasta de Alex sobre el tema.
+    - Sam explica los conceptos centrales basados en la BIBLIOGRAFÍA.
+    - Deben debatir, usar analogías y ejemplos prácticos.
+    - El tono debe ser de una charla de café entre dos personas que saben mucho y quieren compartirlo.
+    
+    BIBLIOGRAFÍA: ${context.substring(0, 6000)}
+    
+    FORMATO OBLIGATORIO:
+    Usa el formato [Nombre]: Contenido. Ejemplo:
+    [Alex]: ¡Hola a todos! Hoy vamos a hablar de un tema fascinante...
+    [Sam]: Así es, Alex. Lo que mencionas es fundamental porque...
+    
+    No uses negritas dentro de los corchetes. Mantén el guion fluido con unos 8-12 intercambios en total.
+  `;
+
+  const completion = await groq.chat.completions.create({
+    messages: [{ role: 'user', content: prompt }],
+    model: 'llama-3.3-70b-versatile',
+  });
+
+  return completion.choices[0]?.message?.content || "No se pudo generar el guion del podcast.";
+};
