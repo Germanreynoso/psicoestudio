@@ -203,20 +203,30 @@ export const generateFinalReport = async (context: string, history: any[]) => {
 
 export const generateKnowledgeGraph = async (context: string) => {
   const prompt = `
-    Analiza el siguiente material de estudio y extrae un MAPA CONCEPTUAL (Knowledge Graph).
-    Identifica los 8-12 conceptos o entidades más importantes y cómo se relacionan entre sí.
-    CRÍTICO: Para cada relación (edge), proporciona una breve explicación técnica de POR QUÉ se relacionan basada en el texto.
+    Analiza el siguiente material de estudio y extrae un MAPA CONCEPTUAL (Knowledge Graph) de alta densidad académica.
+    
+    CRITERIOS DE EXPLICACIÓN (CRÍTICO):
+    Para cada relación (edge), debes proporcionar una "justification" EXTENSA y PROFUNDA. 
+    No te limites a decir "se relacionan"; explica:
+    1. El fundamento teórico del vínculo según la bibliografía.
+    2. Cómo un concepto influye, determina o contradice al otro.
+    3. Citas indirectas o lógica interna que une estas ideas.
+    
+    ESTRUCTURA DE NODOS:
+    - Level 1: Concepto Central / Eje temático.
+    - Level 2: Autores o Teorías principales derivadas.
+    - Level 3: Conceptos técnicos, síntomas o aplicaciones.
     
     MATERIAL: ${context.substring(0, 5000)}
     
     JSON format:
     {
       "nodes": [
-        { "id": "1", "label": "Concepto A", "type": "Teoría|Autor|Síntoma|Proceso" },
+        { "id": "1", "label": "Concepto", "type": "Teoría|Autor|Síntoma|Proceso", "level": 1|2|3 },
         ...
       ],
       "edges": [
-        { "from": "1", "to": "2", "label": "Relación (verbo)", "justification": "Explicación detallada de la conexión..." },
+        { "from": "1", "to": "2", "label": "tipo de vínculo", "justification": "Explicación académica profunda de 3-4 líneas sobre la lógica de este vínculo..." },
         ...
       ]
     }

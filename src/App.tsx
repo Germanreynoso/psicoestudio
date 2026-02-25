@@ -207,19 +207,27 @@ function App() {
       const context = await getContextByIds(selectedDocIds);
       const data = await generateKnowledgeGraph(context);
 
-      // Enhanced circular layout logic for expanded view
-      const radius = 380;
-      const centerX = 500;
-      const centerY = 450;
+      const positionedNodes = data.nodes.map((node: any) => {
+        const level = node.level || 2;
+        // Vertical hierarchy positions
+        const startY = 100;
+        const rowHeight = 180;
+        const y = startY + (level - 1) * rowHeight;
 
-      const positionedNodes = data.nodes.map((node: any, i: number) => {
-        const angle = (i / data.nodes.length) * 2 * Math.PI;
+        // Spread nodes of the same level horizontally
+        const levelNodes = data.nodes.filter((n: any) => (n.level || 2) === level);
+        const levelIndex = levelNodes.indexOf(node);
+        const areaWidth = 1000;
+        const x = (areaWidth / (levelNodes.length + 1)) * (levelIndex + 1);
+
         return {
           ...node,
-          x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle)
+          x,
+          y
         };
       });
+
+      setGraphData({ nodes: positionedNodes, edges: data.edges });
 
       setGraphData({ nodes: positionedNodes, edges: data.edges });
     } catch (error) {
@@ -694,42 +702,50 @@ function App() {
                               onClick={() => setSelectedEdge(edge)}
                               style={{ cursor: 'pointer' }}
                             >
-                              <line
-                                x1={fromNode.x} y1={fromNode.y}
-                                x2={toNode.x} y2={toNode.y}
+                              <path
+                                d={`M ${fromNode.x} ${fromNode.y + 25} C ${fromNode.x} ${(fromNode.y + toNode.y) / 2}, ${toNode.x} ${(fromNode.y + toNode.y) / 2}, ${toNode.x} ${toNode.y - 25}`}
                                 className="graph-edge-line"
+                                fill="none"
                                 markerEnd="url(#arrowhead)"
                               />
-                              <rect
-                                x={(fromNode.x + toNode.x) / 2 - 50}
-                                y={(fromNode.y + toNode.y) / 2 - 15}
-                                width="100" height="30" rx="15"
-                                className="edge-label-bg"
-                              />
-                              <text
-                                x={(fromNode.x + toNode.x) / 2}
-                                y={(fromNode.y + toNode.y) / 2 + 5}
-                                className="edge-label"
-                                textAnchor="middle"
-                              >
-                                {edge.label}
-                              </text>
+                              <g transform={`translate(${(fromNode.x + toNode.x) / 2}, ${(fromNode.y + toNode.y) / 2})`}>
+                                <rect
+                                  x="-35" y="-10"
+                                  width="70" height="20" rx="10"
+                                  className="edge-label-bg"
+                                />
+                                <text
+                                  className="edge-label"
+                                  textAnchor="middle"
+                                  dy="3"
+                                >
+                                  {edge.label}
+                                </text>
+                              </g>
                             </g>
                           );
                         })}
-                        {/* Nodes second - Larger for readability */}
+                        {/* Nodes Redesign: Capsules instead of circles */}
                         {graphData.nodes.map((node) => (
-                          <g key={node.id} className="graph-node-group">
-                            <circle
-                              cx={node.x} cy={node.y} r="65"
-                              className={`graph-node ${node.type?.toLowerCase()}`}
+                          <g key={node.id} className={`graph-node-group level-${node.level}`} onClick={() => { }} style={{ cursor: 'default' }}>
+                            <rect
+                              x={node.x - 70} y={node.y - 25}
+                              width="140" height="50" rx="25"
+                              className={`graph-node ${node.type?.toLowerCase()} ${node.level === 1 ? 'core' : ''}`}
                             />
                             <text
-                              x={node.x} y={node.y + 5}
+                              x={node.x} y={node.y - 2}
                               className="node-label"
                               textAnchor="middle"
                             >
-                              {node.label}
+                              {node.label.length > 16 ? node.label.substring(0, 14) + '..' : node.label}
+                            </text>
+                            <text
+                              x={node.x} y={node.y + 12}
+                              className="node-type-tag"
+                              textAnchor="middle"
+                            >
+                              {node.type}
                             </text>
                           </g>
                         ))}
@@ -741,24 +757,25 @@ function App() {
                       {selectedEdge ? (
                         <>
                           <div className="panel-header">
-                            <h4>📍 Detalle de Conexión</h4>
+                            <h4>📍 Lógica de Conexión</h4>
                             <button className="close-panel-btn" onClick={() => setSelectedEdge(null)}><X size={16} /></button>
                           </div>
                           <div className="panel-content">
                             <div className="connection-summary">
                               <div className="concept-pill">{graphData.nodes.find(n => n.id === selectedEdge.from)?.label}</div>
-                              <div className="relation-arrow">¿Por qué se vinculan?</div>
+                              <div className="relation-arrow">{selectedEdge.label}</div>
                               <div className="concept-pill">{graphData.nodes.find(n => n.id === selectedEdge.to)?.label}</div>
                             </div>
                             <div className="justification-box">
-                              <p>{selectedEdge.justification || "Esta relación indica una vinculación directa analizada por la IA en tu bibliografía."}</p>
+                              <div className="justification-title">Fundamento Académico</div>
+                              <p className="justification-text">{selectedEdge.justification}</p>
                             </div>
                           </div>
                         </>
                       ) : (
                         <div className="panel-empty">
                           <Network size={32} />
-                          <p>Toca una conexión para ver la explicación del Catedrático</p>
+                          <p>Toca una conexión para ver la <strong>explicación técnica profunda</strong> del Catedrático</p>
                         </div>
                       )}
                     </div>
