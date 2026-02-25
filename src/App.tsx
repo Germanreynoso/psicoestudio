@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu, Stethoscope, Mic, MicOff, Network, Maximize2, Minimize2, Scale, Volume2, VolumeX, Upload } from 'lucide-react';
+import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu, Briefcase, Mic, MicOff, Network, Maximize2, Minimize2, Scale, Volume2, VolumeX, Upload } from 'lucide-react';
 import { speakTribunalMessage } from './lib/speech';
 import { FileUpload } from './components/FileUpload';
-import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds, generateClinicalCase, generateKnowledgeGraph } from './lib/ai';
+import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds, generatePracticalCase, generateKnowledgeGraph } from './lib/ai';
 import { saveChatMessage, createNewSession } from './services/api';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -151,7 +151,7 @@ function App() {
     setIsLoading(true);
     try {
       const context = await getContextByIds(selectedDocIds);
-      const caseIntro = await generateClinicalCase(context);
+      const caseIntro = await generatePracticalCase(context);
 
       const session = await createNewSession();
       setSessionId(session.id);
@@ -393,7 +393,7 @@ function App() {
             <FileCheck size={20} /><span>Smart Flashcards</span>
           </div>
           <div className={`nav-item ${activeModule === 'cases' ? 'active' : ''}`} onClick={() => { setActiveModule('cases'); setIsSidebarOpen(false); }}>
-            <Stethoscope size={20} /><span>Casos Clínicos</span>
+            <Briefcase size={20} /><span>Casos Prácticos</span>
           </div>
           <div className={`nav-item ${activeModule === 'map' ? 'active' : ''}`} onClick={() => { setActiveModule('map'); setIsSidebarOpen(false); }}>
             <Network size={20} /><span>Mapa de Conceptos</span>
@@ -448,7 +448,7 @@ function App() {
               <Menu size={24} />
             </button>
             <div className="exam-info">
-              <h1>{activeModule === 'exam' ? 'Examen Final' : activeModule === 'doubt' ? 'Consultas' : activeModule === 'cases' ? 'Casos Clínicos' : activeModule === 'tribunal' ? 'Modo Tribunal' : activeModule === 'ateneo' ? 'El Ateneo' : 'Flashcards'}</h1>
+              <h1>{activeModule === 'exam' ? 'Examen Final' : activeModule === 'doubt' ? 'Consultas' : activeModule === 'cases' ? 'Casos Prácticos' : activeModule === 'tribunal' ? 'Modo Tribunal' : activeModule === 'ateneo' ? 'El Ateneo' : 'Flashcards'}</h1>
               <p className="subtitle">
                 {(activeModule === 'exam' && isExamActive) || (activeModule === 'cases' && isCaseActive) || (activeModule === 'tribunal' && isTribunalActive) || (activeModule === 'ateneo' && isAteneoActive) ? (
                   <span className="progress-pill">Progreso: {currentQuestionCount} de {totalQuestionsLimit}</span>
@@ -685,7 +685,7 @@ function App() {
               <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>
                 <Scale size={48} className="empty-icon" />
                 <h3>Constituir Mesa de Examen</h3>
-                <p>Te enfrentarás a tres profesores (El Estricto, El Clínico y El Empático) simultáneamente.</p>
+                <p>Te enfrentarás a tres profesores (El Estricto, El Práctico y El Empático) simultáneamente.</p>
 
                 <div className="doc-selector-grid">
                   {documents.length === 0 ? (
@@ -773,9 +773,9 @@ function App() {
           ) : activeModule === 'cases' && !isCaseActive ? (
             <div className="flashcards-section">
               <div className="flashcards-empty glass" style={{ width: '100%', maxWidth: '800px' }}>
-                <Stethoscope size={48} className="empty-icon" />
-                <h3>Preparar Simulación Clínica</h3>
-                <p>Selecciona los textos bibliográficos en los que se debe basar el caso del paciente.</p>
+                <Briefcase size={48} className="empty-icon" />
+                <h3>Preparar Simulación Práctica</h3>
+                <p>Selecciona los textos bibliográficos en los que se debe basar el caso o escenario.</p>
 
                 <div className="doc-selector-grid">
                   {documents.length === 0 ? (
@@ -805,7 +805,7 @@ function App() {
                   disabled={isLoading || selectedDocIds.length === 0}
                   style={{ marginTop: '1.5rem', width: '100%' }}
                 >
-                  {isLoading ? <Loader2 className="animate-spin" /> : <Stethoscope size={20} />}
+                  {isLoading ? <Loader2 className="animate-spin" /> : <Briefcase size={20} />}
                   {isLoading ? 'Construyendo escenario...' : `Iniciar Caso de ${selectedDocIds.length} textos`}
                 </button>
               </div>
@@ -927,9 +927,9 @@ function App() {
                 {messages.filter(m => !m.module || m.module === activeModule).length === 0 && (
                   <div className="message assistant glass">
                     {activeModule === 'exam' ? (
-                      <p>Bienvenido al módulo de <strong>Examen</strong>. Evaluaré tu integración clínica y teórica. ¿Empezamos?</p>
+                      <p>Bienvenido al módulo de <strong>Examen</strong>. Evaluaré tu integración crítica y teórica. ¿Empezamos?</p>
                     ) : activeModule === 'tribunal' ? (
-                      <p>Estás frente a la <strong>Mesa de Examen</strong>. Los doctores Castillo, Varela y Rossi te esperan. ¿Deseas presentarte?</p>
+                      <p>Estás frente a la <strong>Mesa de Examen</strong>. Los expertos Castillo, Varela y Rossi te esperan. ¿Deseas presentarte?</p>
                     ) : activeModule === 'ateneo' ? (
                       <p>Bienvenidos al <strong>Ateneo de Autores</strong>. El debate está abierto. ¿Sobre qué concepto quieres que dialoguen los autores?</p>
                     ) : (
@@ -964,9 +964,9 @@ function App() {
                     }
                   }}
                   placeholder={
-                    activeModule === 'exam' ? "Escribe tu respuesta clínica/analítica..." :
-                      activeModule === 'cases' ? "Pregunta al paciente o propone una acción..." :
-                        activeModule === 'tribunal' ? "Responde al tribunal médico..." :
+                    activeModule === 'exam' ? "Escribe tu respuesta analítica..." :
+                      activeModule === 'cases' ? "Propone una acción o solución al escenario..." :
+                        activeModule === 'tribunal' ? "Responde al tribunal académico..." :
                           activeModule === 'ateneo' ? "Modera el debate o lanza un tema..." :
                             "Haz una pregunta sobre el material..."
                   }
@@ -1006,11 +1006,11 @@ function App() {
               <h4>Calificación</h4>
               <div className="score-value">{lastEvaluation.score}/10</div>
             </div>
-            {lastEvaluation.clinical_implications && (
+            {lastEvaluation.practical_implications && (
               <div className="metric-card">
-                <h4>Implicancia Clínica</h4>
+                <h4>Implicancia Práctica</h4>
                 <div style={{ fontSize: '0.85rem', lineHeight: '1.4', color: '#a1a1aa', marginTop: '0.5rem' }}>
-                  {lastEvaluation.clinical_implications}
+                  {lastEvaluation.practical_implications}
                 </div>
               </div>
             )}

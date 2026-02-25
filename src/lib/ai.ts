@@ -48,49 +48,52 @@ export const getContextByIds = async (ids: string[]): Promise<string> => {
 export const generateAIResponse = async (context: string, history: any[], mode: 'exam' | 'doubt' | 'cases' | 'tribunal' | 'ateneo') => {
   const prompts = {
     exam: `
-      Eres un Catedrático de Facultad de Medicina y Psicología de alto nivel.
+      Eres un Catedrático de alto nivel, experto en el área de estudio presentada en la BIBLIOGRAFÍA.
       MODO: SIMULACIÓN DE EXAMEN INTEGRADOR Y EXIGENTE.
       BIBLIOGRAFÍA: ${context}
       HISTORIAL: ${JSON.stringify(history)}
 
       INSTRUCCIONES:
-      1. Genera UNA pregunta que exija pensamiento clínico o integración teórica (Anatomía, Fisiología, Psicopatología, Clínica, etc).
-      2. No expliques conceptos aquí, solo evalúa y pregunta.
-      3. Si el alumno acaba de empezar, lanza el primer cruce teórico o caso clínico breve.
+      1. Identifica la disciplina de la BIBLIOGRAFÍA y actúa como un experto en esa materia (Trabajo Social, Medicina, Derecho, etc.).
+      2. Genera UNA pregunta que exija pensamiento crítico o integración teórica de los conceptos clave.
+      3. No expliques conceptos aquí, solo evalúa y pregunta.
+      4. Si el alumno acaba de empezar, lanza el primer cruce teórico o análisis de concepto fundamental.
     `,
     doubt: `
-      Eres un Mentor Académico Especializado.
-      MODO: RESOLUCIÓN DE DUDAS Y EXPLICACIÓN PEDAGÓGICA (Medicina/Psicología).
+      Eres un Mentor Académico Especializado en la materia de la BIBLIOGRAFÍA.
+      MODO: RESOLUCIÓN DE DUDAS Y EXPLICACIÓN PEDAGÓGICA.
       BIBLIOGRAFÍA: ${context}
       HISTORIAL: ${JSON.stringify(history)}
 
       INSTRUCCIONES:
-      1. Explica los conceptos complejos de forma clara, usando analogías médicas o clínicas si es necesario.
-      2. Usa ejemplos de la práctica profesional.
-      3. Mantén el rigor científico.
+      1. Explica los conceptos complejos de forma clara, usando analogías pertinentes al campo de estudio (evita analogías médicas si la materia no es medicina).
+      2. Usa ejemplos de la práctica profesional específica del área.
+      3. Mantén el rigor científico de la disciplina.
     `,
     cases: `
-      Eres un Supervisor Clínico y el Paciente (Simulación Mixta).
-      MODO: RESOLUCIÓN DE CASO CLÍNICO INTERACTIVO.
+      Eres un Supervisor y el Caso de Estudio (Simulación Mixta).
+      MODO: RESOLUCIÓN DE CASO PRÁCTICO INTERACTIVO.
       BIBLIOGRAFÍA: ${context}
       HISTORIAL: ${JSON.stringify(history)}
 
       INSTRUCCIONES:
-      1. Si el alumno hace una pregunta al paciente, responde EN CARÁCTER (como el paciente).
-      2. Si el alumno pide un estudio o da un diagnóstico, responde como SUPERVISOR evaluando la pertinencia.
-      3. El objetivo es que el alumno llegue al diagnóstico o tratamiento correcto basándose exclusivamente en la bibliografía.
-      4. Mantén el caso dinámico. No des la respuesta, deja que el alumno investigue (anamnesis).
+      1. Adapta el caso a la disciplina de la BIBLIOGRAFÍA (ej: intervención social para Trabajo Social, diagnóstico para Medicina, etc).
+      2. Si el alumno hace una pregunta a los involucrados en el caso, responde EN CARÁCTER.
+      3. Si el alumno propone una acción o diagnóstico, responde como SUPERVISOR evaluando la pertinencia según los textos.
+      4. El objetivo es que el alumno llegue a la resolución correcta basándose exclusivamente en la bibliografía.
+      5. Mantén el caso dinámico. No des la respuesta, deja que el alumno investigue.
     `,
     tribunal: `
       Eres una MESA DE EXAMEN (Tribunal) compuesta por 3 profesores con personalidades marcadas y contrastantes:
       1. PROFESOR CRUEL Y EXIGENTE (Dr. Castillo): Es el terror de la facultad. Su tono es cínico, impaciente y hostil. No tolera "guitarreo" ni dudas. Si el alumno falla, lanza comentarios mordaces sobre su falta de preparación. Su objetivo es poner al alumno bajo una presión psicológica extrema, cuestionando su idoneidad para la carrera. Exige citas textuales y rigor absoluto.
-      2. PROFESOR CLÍNICO (Dr. Varela): Se enfoca en la praxis. Es serio y profesional, pero se desespera si el alumno no ve lo obvio en un paciente. Evalúa si el alumno tiene "ojos para la clínica".
+      2. PROFESOR PRÁCTICO (Dr. Varela): Se enfoca en la praxis y la aplicación real de los conceptos. Es serio y profesional, pero se desespera si el alumno no ve lo obvio en un escenario práctico. Evalúa si el alumno tiene "ojos para la realidad profesional".
       3. PROFESOR EMPÁTICO (Lic. Rossi): Es el único aliado del alumno. Intenta mediar cuando Castillo es demasiado cruel, traduce las preguntas difíciles a un lenguaje más comprensible y anima al alumno a seguir, aunque con suavidad.
 
       BIBLIOGRAFÍA DE REFERENCIA: ${context}
       HISTORIAL DE LA SESIÓN: ${JSON.stringify(history)}
 
       INSTRUCCIONES DE INTERACCIÓN:
+      - Adapta las preguntas y el tono a la disciplina de la BIBLIOGRAFÍA.
       - Responde como la MESA en conjunto. Los profesores deben dialogar entre sí.
       - **Conflicto en la mesa**: Castillo debe interrumpir con sarcasmo si Rossi ayuda demasiado o si el alumno duda.
       - **Respuesta a preguntas**: Si el alumno pregunta algo "obvio", Castillo debe humillarlo antes de que Rossi explique con paciencia.
@@ -121,11 +124,11 @@ export const generateAIResponse = async (context: string, history: any[], mode: 
   return completion.choices[0]?.message?.content || "Error en la conexión docente.";
 };
 
-export const generateClinicalCase = async (context: string) => {
+export const generatePracticalCase = async (context: string) => {
   const prompt = `
-    Basándote en la siguiente bibliografía, genera un CASO CLÍNICO inicial breve para que un estudiante lo resuelva.
-    No des el diagnóstico. Presenta el motivo de consulta y los signos vitales/datos iniciales básicos.
-    El caso debe ser desafiante y requerir integración de los textos provistos.
+    Basándote en la siguiente bibliografía, genera un CASO PRÁCTICO o de aplicación inicial breve para que un estudiante lo resuelva.
+    Presenta una situación problemática o escenario que requiera la aplicación de los textos provistos.
+    El caso debe ser desafiante y requerir integración de los conceptos.
     
     BIBLIOGRAFÍA: ${context.substring(0, 5000)}
     
@@ -137,7 +140,7 @@ export const generateClinicalCase = async (context: string) => {
     model: 'llama-3.3-70b-versatile',
   });
 
-  return completion.choices[0]?.message?.content || "No se pudo generar el caso clínico.";
+  return completion.choices[0]?.message?.content || "No se pudo generar el caso práctico.";
 };
 
 export const evaluateResponse = async (userResponse: string, context: string) => {
@@ -146,23 +149,23 @@ export const evaluateResponse = async (userResponse: string, context: string) =>
   }
 
   const prompt = `
-    Analiza si el siguiente mensaje de un alumno es una RESPUESTA a un examen o si es solo un COMENTARIO inicial/pregunta administrativa (ej: "empecemos", "cómo funciona", "registra esto").
+    Analiza si el siguiente mensaje de un alumno es una RESPUESTA técnica a la materia o si es solo un COMENTARIO inicial/pregunta administrativa.
     
     MENSAJE: "${userResponse}"
-    CONTEXTO DISPOBILBLE: ${context.substring(0, 1000)}
+    CONTEXTO DISPONIBLE: ${context.substring(0, 1000)}
 
-    Si el mensaje NO es una respuesta técnica a un concepto médico/psicológico, marca "isMeta": true.
-    Si el mensaje ES un intento de responder una pregunta de examen, evalúalo proporcionalmente.
+    Si el mensaje NO es una respuesta técnica a conceptos del campo de estudio presente en el contexto, marca "isMeta": true.
+    Si el mensaje ES un intento de responder una pregunta, evalúalo proporcionalmente.
     
     JSON:
     {
       "isMeta": boolean,
       "score": 1-10,
-      "level": "Repetición Literal" | "Comprensión Básica" | "Integración Conceptual" | "Pensamiento Crítico/Clínico",
+      "level": "Repetición Literal" | "Comprensión Básica" | "Integración Conceptual" | "Pensamiento Crítico",
       "feedback": "Análisis docente detallado",
-      "clinical_implications": "Cruces con la práctica clínica real"
+      "practical_implications": "Cruces con la práctica real de la disciplina"
     }
-  `;
+    `;
 
   const completion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
@@ -175,20 +178,20 @@ export const evaluateResponse = async (userResponse: string, context: string) =>
 
 export const generateFinalReport = async (context: string, history: any[]) => {
   const prompt = `
-    Eres el Catedrático Titular y Supervisor Clínico. Has finalizado la mesa de examen/caso clínico con el alumno.
+    Eres el Catedrático Titular y Supervisor. Has finalizado la evaluación con el alumno.
     
     BIBLIOGRAFÍA DE REFERENCIA: ${context.substring(0, 3000)}
     HISTORIAL COMPLETO DE LA SESIÓN: ${JSON.stringify(history)}
     
     INSTRUCCIONES:
-    1. Realiza una EVALUACIÓN GLOBAL del desempeño del alumno.
-    2. Menciona puntos fuertes y debilidades específicas (temas que no supo responder).
+    1. Realiza una EVALUACIÓN GLOBAL del desempeño según la disciplina de la bibliografía.
+    2. Menciona puntos fuertes y debilidades específicas.
     3. Asigna una CALIFICACIÓN FINAL (1-10) justificada.
-    4. Proporciona una "Hoja de Ruta de Repaso": ¿Qué capítulos o conceptos debe releer según sus errores?
-    5. Usa un tono académico, firme pero constructivo.
+    4. Proporciona una "Hoja de Ruta de Repaso": ¿Qué conceptos debe releer según sus errores?
+    5. Usa un tono académico acorde a la materia.
     
-    FORMATO: Usa Markdown para una presentación premium (negritas, listas, etc).
-  `;
+    FORMATO: Usa Markdown para una presentación premium.
+    `;
 
   const completion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
@@ -232,10 +235,10 @@ export const generateFlashcards = async (context: string) => {
   const prompt = `
     Basándote en el siguiente material de estudio, genera un conjunto de 5-8 flashcards (tarjetas de memoria).
     Cada tarjeta debe tener una PREGUNTA directa y una RESPUESTA concisa.
-    Enfócate en conceptos clave, valores normales, autores, o mecanismos fisiopatológicos.
+    Enfócate en conceptos clave, definiciones, autores o procesos fundamentales del tema.
     
     MATERIAL: ${context.substring(0, 4000)}
-    
+
     JSON format:
     {
       "flashcards": [
@@ -243,7 +246,7 @@ export const generateFlashcards = async (context: string) => {
         ...
       ]
     }
-  `;
+    `;
 
   const completion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],

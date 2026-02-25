@@ -6,7 +6,7 @@ export interface Evaluation {
     feedback: string;
     accurate_points: string[];
     missing_points: string[];
-    clinical_implications?: string;
+    practical_implications?: string;
 }
 
 export interface Question {
