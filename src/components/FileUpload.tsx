@@ -22,16 +22,20 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess }) => {
 
 
             try {
-                console.log('Subiendo a Supabase Storage:', file.name);
+                console.log('Iniciando proceso para:', file.name);
+                setFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'uploading' } : f));
 
                 // 1. Subir al Storage (Esto ya funcionaba con check verde)
                 await uploadStudyMaterial(file);
 
-                // 2. Registrar en la base de datos que el archivo existe
-                // Nota: No extraemos texto aquí para evitar que la página "muera"
+                // 2. Extraer texto real del PDF
+                const { extractTextFromPDF } = await import('../lib/pdfProcessor');
+                const extractedText = await extractTextFromPDF(file);
+
+                // 3. Registrar en la base de datos con el contenido real
                 await supabase.from('documents').insert([{
-                    content: `Documento [${file.name}] cargado en el sistema.`,
-                    metadata: { source: file.name, type: 'pdf_reference' }
+                    content: extractedText,
+                    metadata: { source: file.name, type: 'pdf_text' }
                 }]);
 
                 setFiles(prev => prev.map(f => f.name === file.name ? { ...f, status: 'success' } : f));

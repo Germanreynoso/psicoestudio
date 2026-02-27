@@ -21,12 +21,7 @@ export const getRelevantContext = async (): Promise<string> => {
     .limit(10);
 
   if (!error && data && data.length > 0) {
-    return data.map(doc => {
-      if (doc.metadata?.type === 'pdf_reference') {
-        return `[ARCHIVO CARGADO: ${doc.metadata.source}. El alumno lo ha subido a Supabase para su evaluación.]`;
-      }
-      return doc.content;
-    }).join('\n\n');
+    return data.map(doc => doc.content).join('\n\n');
   }
   return "No hay material cargado aún.";
 };
