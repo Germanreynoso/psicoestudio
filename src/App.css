@@ -416,6 +416,84 @@ body {
   color: var(--muted);
 }
 
+/* SIDEBAR DOC SELECTOR */
+.doc-selector-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.doc-selector-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.doc-selector-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.doc-selection-item-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.doc-selection-item-mini:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.doc-selection-item-mini.selected {
+  background: rgba(var(--primary-rgb), 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.05);
+}
+
+.doc-selection-item-mini .selection-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.doc-selection-item-mini.selected .selection-name {
+  color: white;
+}
+
+.doc-selection-item-mini .selector-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.doc-selection-item-mini.selected .selector-checkbox {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.doc-selection-item-mini .checkbox-inner {
+  width: 8px;
+  height: 8px;
+  background: black;
+  border-radius: 1px;
+}
+
 /* FLASHCARDS SECTION (Used for Config Screens) */
 .flashcards-section {
   display: flex;

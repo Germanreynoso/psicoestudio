@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Brain, GraduationCap, Send, History, Loader2, FileCheck, BookOpen, X, FileText, HelpCircle, Menu, Briefcase, Mic, MicOff, Network, Maximize2, Minimize2, Scale, Volume2, VolumeX, Upload, Headphones, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import { speakTribunalMessage, pauseSpeech, resumeSpeech, nextSegment, prevSegment, setSpeechStateCallback } from './lib/speech';
 import { FileUpload } from './components/FileUpload';
-import { generateAIResponse, getRelevantContext, evaluateResponse, generateFlashcards, getContextByIds, generatePracticalCase, generateKnowledgeGraph, generatePodcastScript } from './lib/ai';
+import { generateAIResponse, evaluateResponse, generateFlashcards, getContextByIds, generatePracticalCase, generateKnowledgeGraph, generatePodcastScript } from './lib/ai';
 import { saveChatMessage, createNewSession } from './services/api';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -68,7 +68,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (activeModule === 'flashcards' || activeModule === 'cases' || activeModule === 'exam' || activeModule === 'map' || activeModule === 'tribunal') {
+    if (activeModule === 'flashcards' || activeModule === 'cases' || activeModule === 'exam' || activeModule === 'map' || activeModule === 'tribunal' || activeModule === 'doubt' || activeModule === 'ateneo') {
       fetchAllDocsForSelection();
     }
   }, [activeModule]);
@@ -332,7 +332,7 @@ function App() {
       setMessages(newMessages);
       await saveChatMessage(sessionId, 'user', userMessage);
 
-      const context = await getRelevantContext();
+      const context = await getContextByIds(selectedDocIds);
       let aiContent = "";
       let isMetaMessage = false;
 
@@ -1139,9 +1139,28 @@ function App() {
       <aside className="diagnostic-panel glass">
         <div className="panel-header"><h3><FileCheck size={18} /> Bibliografía Supabase</h3></div>
 
-        <FileUpload onUploadSuccess={(name) => console.log('Subido a Supabase:', name)} />
+        <FileUpload onUploadSuccess={() => fetchAllDocsForSelection()} />
 
-        <div className="panel-header" style={{ marginTop: '1rem' }}><h3>Diagnóstico Evolutivo</h3></div>
+        <div className="doc-selector-sidebar">
+          {documents.map((doc) => (
+            <div
+              key={doc.id}
+              className={`doc-selection-item-mini glass ${selectedDocIds.includes(doc.id) ? 'selected' : ''}`}
+              title={doc.metadata?.source || 'Documento'}
+              onClick={() => toggleDocSelection(doc.id)}
+            >
+              <div className="selector-checkbox">
+                <div className="checkbox-inner"></div>
+              </div>
+              <div className="selection-info">
+                <span className="selection-name">{doc.metadata?.source || 'Documento'}</span>
+              </div>
+            </div>
+          ))}
+          {documents.length === 0 && <p className="muted" style={{ fontSize: '0.8rem', textAlign: 'center' }}>No hay bibliografía cargada</p>}
+        </div>
+
+        <div className="panel-header" style={{ marginTop: '1.5rem' }}><h3>Diagnóstico Evolutivo</h3></div>
         {!lastEvaluation ? (
           <div className="empty-state"><p>Resultados tras la primera respuesta.</p></div>
         ) : (
